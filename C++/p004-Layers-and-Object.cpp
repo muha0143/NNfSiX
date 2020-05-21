@@ -1,113 +1,99 @@
+
 /**
  * Creates a dense layer 
  * 
  * Associated tutorial https://www.youtube.com/watch?v=TEWy9vZcxW4
  */
-#include <iostream>
-#include <random>
+
 #include <vector>
-using namespace std;
+#include <numeric>
+#include <iostream>
 
-/* A helper function to get a random float in range [low, high] */
-double getRandomDouble(double low, double high) {
-	random_device rd;  
-    mt19937 gen(rd()); 
-    uniform_real_distribution<> dis(low, high);
-    return dis(gen);
+typedef std::vector< std::vector< double> >     dmatrix; // dmatrix stands for dynamic matrix
+typedef std::vector< double >                   drow;    // drow stands for dynamic row
+
+// matrix transpose function
+dmatrix T(const dmatrix& m){
+    dmatrix mat;
+    for(size_t i=0; i<m[0].size(); i++){
+        mat.push_back({});
+        for(size_t j=0; j<m.size(); j++){
+            mat[i].push_back(m[j][i]);
+        }
+    }return mat;
 }
 
-/* A dot product function */
-vector<vector<double>> dotProduct(vector<vector<double>> inputs, vector<vector<double>> weights) {
-	// If the inputs is of size (a, b) and weights is of size (b, c) then outputs is of size (a, c)
-	vector<vector<double>> outputs = vector<vector<double>>(inputs.size(), vector<double>(weights[0].size()));
-
-	// Calculating the dot product
-	for(int i = 0; i < inputs.size(); i++) {
-		for(int j = 0; j < weights[0].size(); j++) {
-			double output = 0;
-			for(int k = 0; k < inputs[0].size(); k++) {
-				output += inputs[i][k] * weights[k][j];
-			}
-			outputs[i][j] = output;
-		}
-	}
-
-	return outputs;
+// matrix multiplication operator
+dmatrix operator*(const dmatrix& m1, const dmatrix& m2){
+    auto m3 = T(m2);
+    dmatrix rval;
+    for(size_t i=0; i<m1.size(); i++){
+        rval.push_back({});
+        for(size_t j=0; j<m3.size(); j++){
+            rval[i].push_back(std::inner_product(m1[i].begin(), m1[i].end(), m3[j].begin(), 0.0));
+        }
+    }return rval;
 }
 
-/* A function to add two vectors */
-vector<double> add(vector<double> vector1, vector<double> vector2) {
-	vector<double> output(vector1.size());
-
-	for(int i = 0; i < vector1.size(); i++) {
-		output[i] = vector1[i] + vector2[i];
-	}
-
-	return output;
+// matrix vector addition operator
+dmatrix operator+(const dmatrix& m, const drow& row){
+    dmatrix     xm;
+    for(size_t j=0; j<m.size(); j++){
+        xm.push_back({});
+        for(size_t i=0; i< m[j].size(); i++){
+            xm[j].push_back( m[j][i] + row[j]);
+        }
+    }return xm;
 }
 
-/* The dense layer class */
-class DenseLayer {
-private:
-	vector<vector<double>> weights;
-	vector<double> biases;
-	vector<vector<double>> output;
+// ostream << operator for matrix
+std::ostream& operator<<(std::ostream& os,const dmatrix& dm){
+    for(auto& row : dm){
+        for(auto& item : row)
+            os << item << " ";
+        os << "\n";
+    }return os;
+}
 
-public:
-	/* Constructor */
-	DenseLayer(int n_inputs, int n_neurons) {
-		weights = vector<vector<double>>(n_inputs, vector<double>(n_neurons));
-		for(int i = 0; i < n_inputs; i++) {
-			for(int j = 0; j < n_neurons; j++) {
-				/* random weights initialization */
-				weights[i][j] = 0.1 * getRandomDouble(-1, 1);
-			}
-		}
+// Dense Layer class 
+class dense_layer {
+    private:
+        dmatrix     m_weights, m_output;
+        drow        m_biases;
 
-		// Initializing biases as a vector of zeros
-		biases = vector<double>(n_neurons, 0);
-	}
+    public:
+        // constructor 
+        dense_layer( const size_t& n_input, const size_t& n_neuron) : m_weights(n_input, drow(n_neuron)){
+            for(size_t j=0; j<n_neuron; j++){
+                for(size_t i=0; i<n_input; i++)
+                    m_weights[i][j] = ( 2*(0.5 - double(rand())/double(RAND_MAX)) );
+                m_biases.push_back(0);//2*(0.5 - double(rand())/double(RAND_MAX)));
+            }
+        }
+        // forward pass
+        void forward( const dmatrix& inputs){
+            m_output = inputs * m_weights + m_biases;
+        }
 
-	/* forward pass */
-	void forward(vector<vector<double>> inputs) {
-		output = dotProduct(inputs, weights);
-		for(int i = 0; i < output.size(); i++) {
-			output[i] = add(output[i], biases);
-		}
-	}
-
-	void printOutput() {
-		for(int i = 0; i < output.size(); i++) {
-			for(int j = 0; j < output[0].size(); j++) {
-				cout << output[i][j] << " ";
-			}
-			cout << endl;
-		}
-	}
-
-	/* Getter for the output variable which is private */
-	vector<vector<double>> getOutput() {
-		return output;
-	}
+        dmatrix output() const {
+            return m_output;
+        }
 };
 
-int main() {
-	/* Initializing two layers*/ 
-	DenseLayer l1(4, 5);
-	DenseLayer l2(5, 2);
+int main(){
+    dense_layer l1(4, 5);
+    dense_layer l2(5, 2);
 
-	/* Sample input */
-	vector<vector<double>> X = {
-		{1, 2, 3, 2.5},
-     	{2.0, 5.0, -1.0, 2.0},
-     	{-1.5, 2.7, 3.3, -0.8}
- 	};
+    dmatrix a{
+        drow{1,2,3,2.5},
+        drow{2,5,-1, 2},
+        drow{-1.5, 2.7, 3.3, -0.8}
+    };
 
- 	cout << "First layer forward pass output:" << endl;
- 	l1.forward(X);
- 	l1.printOutput();
+    l1.forward(a);
+    std::cout << " First Layer forward pass output : \n"<< l1.output() << "\n";
+    l2.forward(l1.output());
+    std::cout << " Second Layer forward pass output : \n" << l2.output() << "\n";
 
- 	cout << endl << "Second layer forward pass output:" << endl;
- 	l2.forward(l1.getOutput());
- 	l2.printOutput();
+    return 0;
 }
