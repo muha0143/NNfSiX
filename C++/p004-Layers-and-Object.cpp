@@ -1,19 +1,20 @@
 
-/**
- * Creates a dense layer 
- * 
- * Associated tutorial https://www.youtube.com/watch?v=TEWy9vZcxW4
- */
-
 #include <vector>
 #include <numeric>
 #include <iostream>
+#include <ctime>
+#include <random>
 
-typedef std::vector< std::vector< double> >     dmatrix; // dmatrix stands for dynamic matrix
-typedef std::vector< double >                   drow;    // drow stands for dynamic row
+using dmatrix   = std::vector< std::vector< double> > ; // dmatrix stands for dynamic matrix
+using drow      = std::vector< double > ;    // drow stands for dynamic row
 
+double random(const double& min, const double& max){
+    std::mt19937_64 rng{}; rng.seed( std::random_device{}());
+    std::uniform_real_distribution<> dist{min, max};
+    return dist(rng);
+}
 // matrix transpose function
-dmatrix T(const dmatrix& m){
+dmatrix T(const dmatrix& m) noexcept {
     dmatrix mat;
     for(size_t i=0; i<m[0].size(); i++){
         mat.push_back({});
@@ -24,8 +25,8 @@ dmatrix T(const dmatrix& m){
 }
 
 // matrix multiplication operator
-dmatrix operator*(const dmatrix& m1, const dmatrix& m2){
-    auto m3 = T(m2);
+dmatrix operator*(const dmatrix& m1, const dmatrix& m2) noexcept {
+    dmatrix m3 = T(m2);
     dmatrix rval;
     for(size_t i=0; i<m1.size(); i++){
         rval.push_back({});
@@ -36,7 +37,7 @@ dmatrix operator*(const dmatrix& m1, const dmatrix& m2){
 }
 
 // matrix vector addition operator
-dmatrix operator+(const dmatrix& m, const drow& row){
+dmatrix operator+(const dmatrix& m, const drow& row) noexcept {
     dmatrix     xm;
     for(size_t j=0; j<m.size(); j++){
         xm.push_back({});
@@ -47,7 +48,7 @@ dmatrix operator+(const dmatrix& m, const drow& row){
 }
 
 // ostream << operator for matrix
-std::ostream& operator<<(std::ostream& os,const dmatrix& dm){
+std::ostream& operator<<(std::ostream& os,const dmatrix& dm) noexcept {
     for(auto& row : dm){
         for(auto& item : row)
             os << item << " ";
@@ -63,11 +64,13 @@ class dense_layer {
 
     public:
         // constructor 
-        dense_layer( const size_t& n_input, const size_t& n_neuron) : m_weights(n_input, drow(n_neuron)){
+        dense_layer( const size_t& n_input, const size_t& n_neuron) 
+            : m_weights(n_input, drow(n_neuron)),
+              m_biases(n_neuron, 0)
+        {
             for(size_t j=0; j<n_neuron; j++){
                 for(size_t i=0; i<n_input; i++)
-                    m_weights[i][j] = ( 2*(0.5 - double(rand())/double(RAND_MAX)) );
-                m_biases.push_back(0);//2*(0.5 - double(rand())/double(RAND_MAX)));
+                    m_weights[i][j] = ( random(-1.0, 1.0) );
             }
         }
         // forward pass
@@ -81,19 +84,18 @@ class dense_layer {
 };
 
 int main(){
-    dense_layer l1(4, 5);
-    dense_layer l2(5, 2);
+    dense_layer l1(4,5);
+    dense_layer l2(5,4);
 
-    dmatrix a{
-        drow{1,2,3,2.5},
-        drow{2,5,-1, 2},
-        drow{-1.5, 2.7, 3.3, -0.8}
+    dmatrix X{
+        drow{1, 2, 3, 2.5},
+     	drow{2.0, 5.0, -1.0, 2.0},
+     	drow{-1.5, 2.7, 3.3, -0.8}
     };
-
-    l1.forward(a);
-    std::cout << " First Layer forward pass output : \n"<< l1.output() << "\n";
+    
+    l1.forward(X);
+    std::cout << "\n\n"<< l1.output();
+    
     l2.forward(l1.output());
-    std::cout << " Second Layer forward pass output : \n" << l2.output() << "\n";
-
-    return 0;
+    std::cout << "\n" <<l2.output();
 }
