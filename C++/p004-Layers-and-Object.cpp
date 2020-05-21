@@ -10,9 +10,9 @@ using drow      = std::vector< double > ;    // drow stands for dynamic row
 
 double random(const double& min, const double& max){
     std::mt19937_64 rng{}; rng.seed( std::random_device{}());
-    std::uniform_real_distribution<> dist{min, max};
-    return dist(rng);
+    return std::uniform_real_distribution<>{min, max}(rng);
 }
+
 // matrix transpose function
 dmatrix T(const dmatrix& m) noexcept {
     dmatrix mat;
